@@ -1,0 +1,13 @@
+{
+  "name": "chat-example",
+  "version": "0.0.1",
+  "description": "my first socket.io app",
+  "main": "server.js",
+  "repository": "",
+  "author": "Moharu",
+  "dependencies": {
+    "async": "~0.2.8",
+    "express": "~3.2.4",
+    "socket.io": "~0.9.14"
+  }
+}
