@@ -21,13 +21,9 @@ var server = http.createServer(router);
 var io = socketio.listen(server);
 
 router.use(express.static(path.resolve(__dirname, 'client')));
-var messages = [];
 var sockets = [];
 
 io.on('connection', function (socket) {
-    messages.forEach(function (data) {
-      socket.emit('message', data);
-    });
 
     sockets.push(socket);
 
@@ -36,25 +32,17 @@ io.on('connection', function (socket) {
       updateRoster();
     });
 
-    socket.on('message', function (msg) {
-      var text = String(msg || '');
-
-      if (!text)
-        return;
-
-      socket.get('name', function (err, name) {
-        var data = {
-          name: name,
-          text: text
-        };
-
-        broadcast('message', data);
-        messages.push(data);
-      });
+    socket.on('startgame', function() {
+      randomRoles(3,1,1,1,1,1,2);
     });
-
+    
     socket.on('identify', function (name) {
-      socket.set('name', String(name || 'Anonymous'), function (err) {
+      if (name == '') name = 'Anonymous';
+      var nickname = (sockets.indexOf(socket) + 1) + '. '+name;
+      
+      socket.set('role', 'none');
+      
+      socket.set('name', nickname, function (err) {
         updateRoster();
       });
     });
@@ -70,6 +58,21 @@ function updateRoster() {
       broadcast('roster', names);
     }
   );
+  
+  async.map(
+    sockets,
+    function(socket, callback) {
+      socket.get('role', callback);
+    }, 
+    function (err, names) {
+      sockets.forEach(function (socket){
+        names.forEach(function (name){
+          if(sockets.indexOf(socket) == names.indexOf(name)){
+            socket.emit('tellrole', name);
+          }
+        })
+      });
+    });
 }
 
 function broadcast(event, data) {
@@ -78,7 +81,75 @@ function broadcast(event, data) {
   });
 }
 
+function startGame(){
+  updateRoster();
+}
+
 server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function(){
   var addr = server.address();
   console.log("Chat server listening at", addr.address + ":" + addr.port);
 });
+
+function randomRoles( werewolfnumber, witchnumber, cupidnumber, hunternumber, littlegirlnumber, seernumber, villagernumber) {
+  
+  sockets.forEach(function (socket){
+    var role = 'none';
+    while(role == 'none'){
+      var numb = Math.floor(Math.random()*7) + 1;
+      switch(numb){
+        case 1:
+          if(werewolfnumber!=0){
+            werewolfnumber--;
+            role = 'werewolf';
+            socket.set('role', 'werewolf');
+          }
+          break;
+        case 2:
+          if(witchnumber!=0){
+            witchnumber--;
+            role = 'witch';
+            socket.set('role', 'witch');
+          }
+          break;
+        case 3:
+          if(cupidnumber!=0){
+            cupidnumber--;
+            role = 'cupid';
+            socket.set('role', 'cupid');
+          }
+          break;
+        case 4:
+          if(littlegirlnumber!=0){
+            littlegirlnumber--;
+            role = 'littlegirl';
+            socket.set('role', 'littlegirl');
+          }
+          break;
+        case 5:
+          if(hunternumber!=0){
+            hunternumber--;
+            role = 'hunter';
+            socket.set('role', 'hunter');
+          }
+          break;
+        case 6:
+          if(seernumber!=0){
+            seernumber--;
+            role = 'seer';
+            socket.set('role', 'seer');
+          }
+          break;
+        case 7:
+          if(villagernumber!=0){
+            villagernumber--;
+            role = 'villager';
+            socket.set('role', 'villager');
+          }
+          break;
+      }
+    }
+  startGame();
+  });
+  
+  
+}
