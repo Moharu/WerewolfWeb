@@ -21,9 +21,16 @@ var router = express();
 var server = http.createServer(router);
 var io = socketio.listen(server);
 
-router.use(express.static(path.resolve(__dirname, 'client')));
+router.configure(function (){ //Redireciona as conexões para o diretorio client
+  router.use(
+      "/",
+      express.static(path.resolve(__dirname, "client"))
+    );
+});
+
 var sockets = [];
 var roles = [];
+var beforestart = 0;
 
 io.on('connection', function (socket) { //Estabelece os callbacks de cada event  ('event', callback (funçao executada quando recebe aquele evento.))
 
@@ -35,6 +42,7 @@ io.on('connection', function (socket) { //Estabelece os callbacks de cada event 
     });
 
     socket.on('startgame', function() {
+      beforestart = 0;
       randomRoles(3, 1, 1, 1, 1, 1, 2);
     });
     
@@ -53,13 +61,13 @@ io.on('connection', function (socket) { //Estabelece os callbacks de cada event 
   });
 
 function updateRoster() {
-  async.map(
-    sockets,
-    function (socket, callback) {
-      socket.get('name', callback);
+  async.map(  //Evento assíncrono que, para cada elemento do array, executa uma função esperando resultados,
+    sockets, // depois, cria um array com todos resultados e chama a última função. O interessante é que
+    function (socket, callback) { // socket.get também é assíncrono, então ele só chama a próxima função
+      socket.get('name', callback); // depois que voltar o resultado do get.
     },
     function (err, names) {
-      broadcast('roster', names);
+      broadcast('roster', names); //broadcast nos jogadores
     }
   );
   
@@ -73,7 +81,7 @@ function updateRoster() {
         names.forEach(function (name){
           if(sockets.indexOf(socket) == names.indexOf(name)){
             roles[sockets.indexOf(socket)] = name;
-            socket.emit('tellrole', name);
+            socket.emit('tellrole', name);  //emit individual na role
           }
         })
       });
@@ -158,26 +166,27 @@ function randomRoles( werewolfnumber, witchnumber, cupidnumber, hunternumber, li
 
 function startGame(){
   updateRoster();
+  beforestart++; //Como randomroles dá um startgame para cada socket, espera todos receberem startgame para
+  if(beforestart == sockets.length){ // de fato dar broadcast no start.
+    broadcast('startgame', null);
+    startNightCycle();
+  } 
+}
+
+function startNightCycle(){
+  newTurn('werewolf', 30);
+}
+
+function newTurn(role, time){
   sockets.forEach(function (socket){
-    socket.emit('startclock', 30);
+    if(roles[sockets.indexOf(socket)] == role){
+      socket.emit('startclock', time);
+    }
   });
-  //setTimeout(startNightCycle(), 5000);
 }
 
-function startClock(socket, seconds){
-  socket.emit('startclock', seconds);
-}
-
-/*function startNightCycle(){
-  werewolvesTurn();
-}
-
-function werewolvesTurn(){
-  sockets.forEach(function (socket){
-    socket.get('role', function(role){
-      if(role == 'werewolf'){
-        socket.emit('startclock', 30);
-      }
-    });
-  });
-}*/
+/* TODO:
+ *   Ao startar o jogo, quando tem muitos jogadores, alguns não recebem o startgame, pode ser
+ *   problema ao dar muitos emits, já que ele dá um updateroster pra cada um... talvez utilizar
+ *  async.map no randomroles resolva.
+*/

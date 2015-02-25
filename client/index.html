@@ -41,7 +41,8 @@
         
         <div class="span4" ng-hide="!state">
           <h2>You are a <b>{{role}}</b>!<h2>
-          <div class="my-clock" ng-hide="clockenabled"></div>
+          <div id="roleevent"></div>
+          <div id="counter" ng-hide="hidetimer">Time remaining: {{timeleft}}</div>
         </div>
       </div>
     </div>
@@ -54,16 +55,11 @@
     
     <script>
       function ChatController($scope) {
-        
-        var clockenabled = false;
-        
-        var clock = $('.my-clock').FlipClock(10,{
-          clockFace: 'Counter',
-          countdown: true
-        });
-        
+
         var socket = io.connect();
         
+        $scope.hidetimer = true;
+        $scope.timeleft = 0;
         $scope.state = 0;
 
         $scope.roster = [];
@@ -80,9 +76,8 @@
         });
         
         socket.on('startclock', function(seconds){
-          clock.setTime(seconds);
-          clockenabled = true;
-          clock.start();
+          $scope.enableRoleEvent();
+          $scope.enableTimer(30);
         });
 
         socket.on('tellrole', function (role){
@@ -93,18 +88,40 @@
 
         socket.on('startgame', function(){
           $scope.state = 1;
-          clockenabled = true;
-          clock.start();
         });
 
         $scope.startGame = function startGame(){
-          console.log('oi');
           socket.emit('startgame');
         };
 
         $scope.setName = function setName() {
           socket.emit('identify', $scope.name);
         };
+        
+        $scope.enableRoleEvent = function enableRoleEvent(){
+          switch($scope.role){
+            case 'werewolf':
+              $('#roleevent').html("<p>Who dya wanna kill?</p><button class='btn btn-danger'>Lol</button>");
+              break;
+          }
+        }
+        
+        $scope.enableTimer = function enableTimer(time){
+          if($scope.hidetimer == true){
+            $scope.timeleft = time;
+            $scope.hidetimer = false;
+            setInterval(function(){
+              $scope.timeleft -= 1;
+              $scope.$apply();
+              if($scope.timeleft == 0){
+                //O QUE FAZER QUANDO ACABAR A CONTAGEM
+                $scope.hidetimer = true;
+                $('#roleevent').html("");
+                clearInterval();
+              }
+            }, 1000);            
+          }
+        }
       }
     </script>
     

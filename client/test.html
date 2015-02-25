@@ -6,11 +6,38 @@
         <link rel="stylesheet" href="/css/flipclock.css">
     </head>
     <body>
+
         <div class="your-clock"></div>
+        <button class="btn" onclick="startClock()">Batata</button>
         <script src="/js/jquery.min.js"></script>
         <script src="/js/flipclock.min.js"></script>
         <script>
-            var clock = $('.your-clock').FlipClock();
+        var clock = $('.your-clock').FlipClock(5,{
+          clockFace: 'Counter',
+          countdown: true,
+          autoStart: false,
+          callbacks: {
+              stop: function(){
+                  console.log('batata');
+              }
+          }
+        });
+        //*********************************************************************************
+        ///BEWARE SUPER GAMBIARRA AHEAD
+        //*********************************************************************************
+    setTimeout(function() {
+		setInterval(function() {
+			clock.decrement();
+			if(clock.getTime() == 0){
+			    console.log('caraaaiii vei');
+			}
+		}, 1000);
+	});
+        
+        function startClock(){
+            clock.setTime(30);
+            clock.start();
+        }
         </script>
     </body>
 </html>
