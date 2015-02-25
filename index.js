@@ -3,6 +3,7 @@
 //
 // A simple chat server using Socket.IO, Express, and Async.
 //
+
 var http = require('http');
 var path = require('path');
 
@@ -22,8 +23,9 @@ var io = socketio.listen(server);
 
 router.use(express.static(path.resolve(__dirname, 'client')));
 var sockets = [];
+var roles = [];
 
-io.on('connection', function (socket) {
+io.on('connection', function (socket) { //Estabelece os callbacks de cada event  ('event', callback (funçao executada quando recebe aquele evento.))
 
     sockets.push(socket);
 
@@ -33,11 +35,13 @@ io.on('connection', function (socket) {
     });
 
     socket.on('startgame', function() {
-      randomRoles(3,1,1,1,1,1,2);
+      randomRoles(3, 1, 1, 1, 1, 1, 2);
     });
     
     socket.on('identify', function (name) {
-      if (name == '') name = 'Anonymous';
+      if (name == '') {
+        name = 'Anonymous';
+      }
       var nickname = (sockets.indexOf(socket) + 1) + '. '+name;
       
       socket.set('role', 'none');
@@ -68,6 +72,7 @@ function updateRoster() {
       sockets.forEach(function (socket){
         names.forEach(function (name){
           if(sockets.indexOf(socket) == names.indexOf(name)){
+            roles[sockets.indexOf(socket)] = name;
             socket.emit('tellrole', name);
           }
         })
@@ -81,17 +86,16 @@ function broadcast(event, data) {
   });
 }
 
-function startGame(){
-  updateRoster();
-}
-
 server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function(){
   var addr = server.address();
   console.log("Chat server listening at", addr.address + ":" + addr.port);
 });
 
+/* ***************************** GAME ******************************************
+******************************** FUNCTIONS *************************************
+*/
+
 function randomRoles( werewolfnumber, witchnumber, cupidnumber, hunternumber, littlegirlnumber, seernumber, villagernumber) {
-  
   sockets.forEach(function (socket){
     var role = 'none';
     while(role == 'none'){
@@ -150,6 +154,30 @@ function randomRoles( werewolfnumber, witchnumber, cupidnumber, hunternumber, li
     }
   startGame();
   });
-  
-  
 }
+
+function startGame(){
+  updateRoster();
+  sockets.forEach(function (socket){
+    socket.emit('startclock', 30);
+  });
+  //setTimeout(startNightCycle(), 5000);
+}
+
+function startClock(socket, seconds){
+  socket.emit('startclock', seconds);
+}
+
+/*function startNightCycle(){
+  werewolvesTurn();
+}
+
+function werewolvesTurn(){
+  sockets.forEach(function (socket){
+    socket.get('role', function(role){
+      if(role == 'werewolf'){
+        socket.emit('startclock', 30);
+      }
+    });
+  });
+}*/

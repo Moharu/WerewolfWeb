@@ -1,54 +1,16 @@
 <!doctype html>
 <html lang="en" ng-app>
   <head>
-    <title>Chat Example</title>
+    <title>Werewolf Project</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/bootstrap-responsive.min.css">
+    <link rel="stylesheet" href="/css/flipclock.css">
     <style>
       body {
         padding-top: 60px;
       }
     </style>
-    <script>
-      function ChatController($scope) {
-        var socket = io.connect();
-        
-        $scope.state = 0;
-
-        $scope.roster = [];
-        $scope.role = '';
-        $scope.name = '';
-
-        socket.on('connect', function () {
-          $scope.setName();
-        });
-
-        socket.on('roster', function (names) {
-          $scope.roster = names;
-          $scope.$apply();
-        });
-
-        socket.on('tellrole', function (role){
-          $scope.role = role;
-          if(!(role == 'none' || role == '')) $scope.state = 1;
-          $scope.$apply();
-        });
-
-        socket.on('startgame', function(){
-          $scope.state = 1;
-        });
-
-        $scope.startGame = function startGame(){
-          console.log('oi');
-          socket.emit('startgame');
-        };
-
-        $scope.setName = function setName() {
-          socket.emit('identify', $scope.name);
-        };
-      }
-    </script>
   </head>
   <body>
     <div class="container" ng-controller="ChatController">
@@ -76,9 +38,10 @@
             <button class="span2 btn btn-primary" ng-click="startGame()">Start Game!</button>
           </div>
         </div>
+        
         <div class="span4" ng-hide="!state">
           <h2>You are a <b>{{role}}</b>!<h2>
-          
+          <div class="my-clock" ng-hide="clockenabled"></div>
         </div>
       </div>
     </div>
@@ -86,5 +49,65 @@
     <script src="/js/jquery.min.js"></script>
     <script src="/js/bootstrap.min.js"></script>
     <script src="/js/angular.min.js"></script>
+    <script src="/js/flipclock.min.js"></script>
+    <!-- SCRIPTS -->
+    
+    <script>
+      function ChatController($scope) {
+        
+        var clockenabled = false;
+        
+        var clock = $('.my-clock').FlipClock(10,{
+          clockFace: 'Counter',
+          countdown: true
+        });
+        
+        var socket = io.connect();
+        
+        $scope.state = 0;
+
+        $scope.roster = [];
+        $scope.role = '';
+        $scope.name = '';
+
+        socket.on('connect', function () {
+          $scope.setName();
+        });
+
+        socket.on('roster', function (names) {
+          $scope.roster = names;
+          $scope.$apply();
+        });
+        
+        socket.on('startclock', function(seconds){
+          clock.setTime(seconds);
+          clockenabled = true;
+          clock.start();
+        });
+
+        socket.on('tellrole', function (role){
+          $scope.role = role;
+          if(!(role == 'none' || role == '')) $scope.state = 1;
+          $scope.$apply();
+        });
+
+        socket.on('startgame', function(){
+          $scope.state = 1;
+          clockenabled = true;
+          clock.start();
+        });
+
+        $scope.startGame = function startGame(){
+          console.log('oi');
+          socket.emit('startgame');
+        };
+
+        $scope.setName = function setName() {
+          socket.emit('identify', $scope.name);
+        };
+      }
+    </script>
+    
+    <!-- SCRIPTS END -->
   </body>
 </html>
